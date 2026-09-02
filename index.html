@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Đang tải...</title>
+<title>Video</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -14,88 +14,125 @@
     overflow: hidden;
   }
 
-  #video-container {
+  #stage {
     position: fixed;
-    top: 0;
-    left: 0;
+    top: 0; left: 0;
     width: 100vw;
     height: 100vh;
     background: #000;
   }
 
-  #scare-video {
+  /* Ảnh bìa giả lập video đang dừng */
+  #cover {
+    position: absolute;
+    top: 0; left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    background-image: url('uploads/background.jpg');
+    background-size: contain;      /* giữ đúng tỉ lệ ảnh, không phóng to/crop */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: #000;
+    cursor: pointer;
+    z-index: 10;
   }
 
-  /* Màn hình chờ trong lúc trình duyệt cần 1 tương tác để bật âm thanh */
-  #tap-overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: #000;
+  /* Nút Play kiểu YouTube */
+  #play-btn {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 80px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 999;
-    cursor: pointer;
+    transition: background 0.2s;
   }
 
-  #tap-overlay p {
-    color: #444;
-    font-family: sans-serif;
-    font-size: 14px;
-    opacity: 0.6;
+  #cover:hover #play-btn {
+    background: rgba(255, 0, 0, 0.8);
   }
 
-  .hidden { display: none !important; }
+  #play-btn svg {
+    width: 32px;
+    height: 32px;
+    fill: #fff;
+    margin-left: 5px; /* căn giữa hình tam giác play */
+  }
+
+  /* Thanh tiến trình giả để giống video đang dừng */
+  #fake-progress {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  #fake-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: #ff0000;
+  }
+
+  #video-container {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    display: none;
+    z-index: 5;
+  }
+
+  #scare-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;  /* giữ tỉ lệ gốc, không bị phóng to méo hình */
+    background: #000;
+  }
 </style>
 </head>
 <body>
 
-<div id="video-container">
-  <video id="scare-video" src="uploads/ghost.mp4" playsinline></video>
-</div>
+<div id="stage">
 
-<!-- Lớp phủ để "câu" một cú chạm/click đầu tiên, giúp trình duyệt mobile cho phép phát âm thanh -->
-<div id="tap-overlay">
-  <p>Đang tải video...</p>
+  <div id="video-container">
+    <video id="scare-video" src="uploads/ghost.mp4" playsinline></video>
+  </div>
+
+  <div id="cover">
+    <div id="play-btn">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </div>
+    <div id="fake-progress">
+      <div id="fake-progress-bar"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
+  const cover = document.getElementById('cover');
+  const videoContainer = document.getElementById('video-container');
   const video = document.getElementById('scare-video');
-  const overlay = document.getElementById('tap-overlay');
 
-  function playScare() {
+  cover.addEventListener('click', () => {
+    cover.style.display = 'none';
+    videoContainer.style.display = 'block';
+
     video.muted = false;
     video.volume = 1.0;
     video.currentTime = 0;
-    const playPromise = video.play();
-
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        // Nếu trình duyệt vẫn chặn autoplay có tiếng, thử phát muted trước rồi bật tiếng ngay sau
-        video.muted = true;
-        video.play();
-        setTimeout(() => { video.muted = false; }, 50);
-      });
-    }
-    overlay.classList.add('hidden');
-  }
-
-  // Thử tự phát ngay khi trang load (có thể bị chặn nếu chưa có tương tác)
-  window.addEventListener('load', () => {
-    playScare();
-  });
-
-  // Nếu bị chặn autoplay có âm thanh, cú chạm/click đầu tiên bất kỳ ở đâu trên trang sẽ kích hoạt phát full tiếng
-  document.addEventListener('click', playScare, { once: true });
-  document.addEventListener('touchstart', playScare, { once: true });
-
-  // Khi video load xong metadata, ẩn overlay nếu đã play được
-  video.addEventListener('playing', () => {
-    overlay.classList.add('hidden');
+    video.play().catch(() => {
+      // fallback nếu vẫn bị chặn tiếng, gần như không xảy ra vì đã có click
+      video.muted = true;
+      video.play();
+      setTimeout(() => { video.muted = false; }, 50);
+    });
   });
 </script>
 
